@@ -22,10 +22,10 @@ class Solver:
     def __init__(self, game):
         self.game = game
         self.new_cells = set()
-        for x in range(game.size):
-            for y in range(game.size):
-                if not game.is_cell_empty(x, y):
-                    self.new_cells.add((x, y))
+        cells = [(x, y) for x in range(game.size) for y in range(game.size)]
+        for cell in cells:
+            if not game.is_cell_empty(cell):
+                self.new_cells.add(cell)
         self.segments = self.get_segments(game)
 
     def get_horizontal_segments_containing(self, cell):
@@ -48,7 +48,7 @@ class Solver:
         for x in range(game.size):
             cells = set()
             for y in range(game.size):
-                if game.is_cell_blocked(x, y):
+                if game.is_cell_blocked((x, y)):
                     if len(cells) > 0:
                         segments.append(Segment(cells, Segment.vertical, game.size))
                         cells = set()
@@ -60,7 +60,7 @@ class Solver:
         for y in range(game.size):
             cells = set()
             for x in range(game.size):
-                if game.is_cell_blocked(x, y):
+                if game.is_cell_blocked((x, y)):
                     if len(cells) > 0:
                         segments.append(Segment(cells, Segment.horizontal, game.size))
                         cells = set()
@@ -71,24 +71,24 @@ class Solver:
         return segments
 
     def find_solo_guesses(self):
-        for x in range(self.game.size):
-            for y in range(self.game.size):
-                if self.game.is_cell_blocked(x, y) or not self.game.is_cell_empty(x, y):
-                    continue
-                numbers = self.game.guesses_in_cell(x, y)
-                if len(numbers) == 1:
-                    self.game.set_cell_to_number(x, y, numbers[0])
-                    self.new_cells.add((x, y))
-        pass
+        cells = [(x, y) for x in range(self.game.size) for y in range(self.game.size)]
+        for cell in cells:
+            if self.game.is_cell_blocked(cell) or not self.game.is_cell_empty(cell):
+                continue
+            numbers = self.game.guesses_in_cell(cell)
+            if len(numbers) == 1:
+                self.game.set_cell_to_number(cell, numbers[0])
+                self.new_cells.add(cell)
 
     def delete_rook_moves(self):
         for cell in self.new_cells:
             x, y = cell
-            number = self.game.cell(x, y)
+            number = self.game.cell(cell)
             for i in range(self.game.size):
-                self.remove_guess_from_cell(number, (x, i))
-                self.remove_guess_from_cell(number, (i, y))
-
+                if i != y:
+                    self.remove_guess_from_cell(number, (x, i))
+                if i != x:
+                    self.remove_guess_from_cell(number, (i, y))
         self.new_cells = set()
 
     def decrease_ranges_of_segments_by_values(self):
@@ -96,12 +96,11 @@ class Solver:
             min_entry = self.game.size + 1
             max_entry = 0
             for cell in segment.cells:
-                x, y = cell
-                if not self.game.is_cell_empty(x, y):
-                    if self.game.cell(x, y) > max_entry:
-                        max_entry = self.game.cell(x, y)
-                    if self.game.cell(x, y) < min_entry:
-                        min_entry = self.game.cell(x, y)
+                if not self.game.is_cell_empty(cell):
+                    if self.game.cell(cell) > max_entry:
+                        max_entry = self.game.cell(cell)
+                    if self.game.cell(cell) < min_entry:
+                        min_entry = self.game.cell(cell)
             if max_entry != 0:
                 length = len(segment)
                 min_possible = max(0, max_entry - length + 1)
@@ -122,16 +121,15 @@ class Solver:
         pass
 
     def remove_guess_from_cell(self, number, cell):
-        x, y = cell
-        if number in self.game.guesses[y][x]:
-            self.game.guesses[y][x].remove(number)
+        if number in self.game.guesses[cell]:
+            self.game.guesses[cell].remove(number)
 
     def decrease_ranges_of_segments_by_guesses(self):
         for segment in self.segments:
             for cell in segment.cells:
                 x, y = cell
-                guesses = self.game.guesses_in_cell(x, y)
-                if not self.game.is_cell_empty(x,y):
-                    guesses = [self.game.cell(x,y)]
+                guesses = self.game.guesses_in_cell(cell)
+                if not self.game.is_cell_empty(cell):
+                    guesses = [self.game.cell(cell)]
                 segment.min = max(min(guesses) - len(segment) + 1, segment.min)
                 segment.max = min(max(guesses) + len(segment) - 1, segment.max)

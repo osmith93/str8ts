@@ -10,29 +10,31 @@ class Game:
 
     def __init__(self, size=9):
         self.size = size
-        self.number_board = size * [size * [Game.EMPTY]]
-        self.blocked_board = size * [size * [False]]
+        cells = [(x,y) for x in range(size) for y in range(size)]
+        self.number_board = {cell : Game.EMPTY for cell in cells}
+        self.blocked_board = {cell : False for cell in cells}
         self.segments = []
         possible_numbers = [i for i in range(1,size+1)]
-        self.guesses = [[possible_numbers.copy() for _ in range(size)] for _ in range(size)]
-        print(self.guesses)
+        self.guesses = {cell: possible_numbers.copy() for cell in cells}
 
     def load(self, filename):
         """Loads a game state from file."""
-        self.number_board = []
-        self.blocked_board = []
+        self.number_board = {}
+        self.blocked_board = {}
         with open(filename) as f:
-            for _ in range(self.size):
+            for y in range(self.size):
                 line = next(f).strip()
                 row = self.decode_blocked_board_line(line)
-                self.blocked_board.append(row)
+                row = {(x,y) : row[x] for x in range(self.size)}
+                self.blocked_board.update(row)
             empty_line = next(f).strip()
             if empty_line != "":
                 raise Exception(f'Corrupted text file. Expected empty line, but got "{empty_line}".')
-            for _ in range(self.size):
+            for y in range(self.size):
                 line = next(f).strip()
                 row = self.decode_number_board_line(line)
-                self.number_board.append(row)
+                row = {(x,y) : row[x] for x in range(self.size)}
+                self.number_board.update(row)
 
     def decode_number_board_line(self, line):
         row = []
@@ -67,25 +69,25 @@ class Game:
     def check(self):
         pass
 
-    def cell(self, x, y):
+    def cell(self, cell):
         """Returns the contents of a cell."""
-        return self.number_board[y][x]
+        return self.number_board[cell]
 
-    def guesses_in_cell(self, x,y):
+    def guesses_in_cell(self, cell):
         """Returns the guesses of a cell."""
-        return self.guesses[y][x]
+        return self.guesses[cell]
 
-    def is_cell_blocked(self, x, y):
+    def is_cell_blocked(self, cell):
         """Returns whether the cell is blocked."""
-        return self.blocked_board[y][x]
+        return self.blocked_board[cell]
 
-    def is_cell_empty(self, x, y):
+    def is_cell_empty(self, cell):
         """Checks if cell is empty."""
-        return self.cell(x, y) == Game.EMPTY
+        return self.cell(cell) == Game.EMPTY
 
-    def set_cell_to_number(self,x,y,number):
+    def set_cell_to_number(self,cell,number):
         """Sets cell to number."""
-        self.number_board[y][x] = number
+        self.number_board[cell] = number
 
 
 
