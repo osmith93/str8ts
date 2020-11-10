@@ -4,17 +4,33 @@ vertical = "vertical"
 horizontal = "horizontal"
 
 
+class Cell:
+    def __init__(self, pos, blocked, size, number=None):
+        self.pos = pos
+        self.is_blocked = blocked
+        self.number = number
+        self.guesses = [i for i in range(1, size + 1)]
+
+    def block(self):
+        self.blocked = True
+
+
+class Board:
+    def __init__(self, size):
+        pass
+
+
 class Game:
     EMPTY = 0
     BLOCKED = True
 
     def __init__(self, size=9):
         self.size = size
-        cells = [(x,y) for x in range(size) for y in range(size)]
-        self.number_board = {cell : Game.EMPTY for cell in cells}
-        self.blocked_board = {cell : False for cell in cells}
+        cells = [(x, y) for x in range(size) for y in range(size)]
+        self.number_board = {cell: Game.EMPTY for cell in cells}
+        self.blocked_board = {cell: False for cell in cells}
         self.segments = []
-        possible_numbers = [i for i in range(1,size+1)]
+        possible_numbers = [i for i in range(1, size + 1)]
         self.guesses = {cell: possible_numbers.copy() for cell in cells}
 
     def load(self, filename):
@@ -25,7 +41,7 @@ class Game:
             for y in range(self.size):
                 line = next(f).strip()
                 row = self.decode_blocked_board_line(line)
-                row = {(x,y) : row[x] for x in range(self.size)}
+                row = {(x, y): row[x] for x in range(self.size)}
                 self.blocked_board.update(row)
             empty_line = next(f).strip()
             if empty_line != "":
@@ -33,7 +49,7 @@ class Game:
             for y in range(self.size):
                 line = next(f).strip()
                 row = self.decode_number_board_line(line)
-                row = {(x,y) : row[x] for x in range(self.size)}
+                row = {(x, y): row[x] for x in range(self.size)}
                 self.number_board.update(row)
 
     def decode_number_board_line(self, line):
@@ -69,27 +85,29 @@ class Game:
     def check(self):
         pass
 
-    def cell(self, cell):
+    def get_cell(self, cell):
         """Returns the contents of a cell."""
         return self.number_board[cell]
 
-    def guesses_in_cell(self, cell):
+    def get_guesses(self, cell):
         """Returns the guesses of a cell."""
         return self.guesses[cell]
 
-    def is_cell_blocked(self, cell):
+    def is_blocked(self, cell):
         """Returns whether the cell is blocked."""
         return self.blocked_board[cell]
 
-    def is_cell_empty(self, cell):
+    def is_empty(self, cell):
         """Checks if cell is empty."""
-        return self.cell(cell) == Game.EMPTY
+        return self.get_cell(cell) == Game.EMPTY
 
-    def set_cell_to_number(self,cell,number):
+    def set_to_number(self, cell, number):
         """Sets cell to number."""
         self.number_board[cell] = number
 
-
+    def remove_guess(self, number, cell):
+        if number in self.guesses[cell]:
+            self.guesses[cell].remove(number)
 
 
 class Segment:

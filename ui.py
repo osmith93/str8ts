@@ -48,21 +48,21 @@ class GameUI:
             for y in range(n):
                 fontname = "Times New Roman"
                 fontsize = 28
-                if self.game.is_cell_blocked((x, y)):
+                if self.game.is_blocked((x, y)):
                     color = "black"
                     text_color = "white"
                 else:
                     color = "white"
                     text_color = "black"
-                if self.game.cell((x, y)) == Game.EMPTY:
+                if self.game.get_cell((x, y)) == Game.EMPTY:
                     text = ""
-                    if not self.game.is_cell_blocked((x, y)):
-                        text = ",".join([str(g) for g in self.game.guesses_in_cell((x, y))])
+                    if not self.game.is_blocked((x, y)):
+                        text = ",".join([str(g) for g in self.game.get_guesses((x, y))])
                         fontsize = 5
                         text_color = "gray"
 
                 else:
-                    text = str(self.game.cell((x, y)))
+                    text = str(self.game.get_cell((x, y)))
 
                 cell_frame = tk.Frame(self.frame, bg="black")
                 cell_frame.grid(row=y, column=x, sticky="nsew")
@@ -70,13 +70,13 @@ class GameUI:
                 cell_inner_frame.place(relwidth=0.96, relheight=0.96, relx=0.02, rely=0.02)
                 cell_inner_frame.columnconfigure(0, weight=1)
                 cell_inner_frame.rowconfigure(0, weight=1)
-                if self.game.cell((x, y)) == Game.EMPTY and not self.game.is_cell_blocked((x, y)):
+                if self.game.get_cell((x, y)) == Game.EMPTY and not self.game.is_blocked((x, y)):
                     for guess_x in range(3):
                         cell_inner_frame.columnconfigure(guess_x, weight=1)
                         cell_inner_frame.rowconfigure(guess_x, weight=1)
                         for guess_y in range(3):
                             number = 1 + guess_x + 3 * guess_y
-                            if number in self.game.guesses_in_cell((x, y)):
+                            if number in self.game.get_guesses((x, y)):
                                 text = str(number)
                             else:
                                 text = ""
