@@ -14,7 +14,8 @@ class Game:
         self.blocked_board = size * [size * [False]]
         self.segments = []
         possible_numbers = [i for i in range(1,size+1)]
-        self.guesses = size * [size * [possible_numbers]]
+        self.guesses = [[possible_numbers.copy() for _ in range(size)] for _ in range(size)]
+        print(self.guesses)
 
     def load(self, filename):
         """Loads a game state from file."""
@@ -81,6 +82,12 @@ class Game:
     def is_cell_empty(self, x, y):
         """Checks if cell is empty."""
         return self.cell(x, y) == Game.EMPTY
+
+    def set_cell_to_number(self,x,y,number):
+        """Sets cell to number."""
+        self.number_board[y][x] = number
+
+
 
 
 class Segment:

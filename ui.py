@@ -14,7 +14,8 @@ class GameUI:
     secondary_light = "#c158dc"
     text_on_secondary = "black"
 
-    def __init__(self, game):
+    def __init__(self, game, solver):
+        self.solver = solver
         self.game = game
         self.root = tk.Tk()
         self.canvas = tk.Canvas(self.root, height=700, width=700, bg=GameUI.primary)
@@ -26,15 +27,20 @@ class GameUI:
             Grid.columnconfigure(self.frame, x, weight=1)
             Grid.rowconfigure(self.frame, x, weight=1)
 
-        self.openFile = tk.Button(self.root, text="Load Game", padx=10, pady=5, fg=GameUI.text_on_primary,
+        self.openFile = tk.Button(self.root, text="Update UI", padx=10, pady=5, fg=GameUI.text_on_primary,
                                   bg=GameUI.primary, activebackground=GameUI.primary_light,
                                   command=self.draw)
         self.openFile.grid(row=1, column=0)
-        self.saveFile = tk.Button(self.root, text="Save Game", padx=10, pady=5, fg=GameUI.text_on_primary,
-                                  bg=GameUI.primary, activebackground=GameUI.primary_light)
+        self.saveFile = tk.Button(self.root, text="Next Move", padx=10, pady=5, fg=GameUI.text_on_primary,
+                                  bg=GameUI.primary, activebackground=GameUI.primary_light,
+                                  command=self.next_step)
         self.saveFile.grid(row=1, column=1)
 
         self.root.mainloop()
+
+    def next_step(self):
+        self.solver.next_step()
+        self.draw()
 
     def draw(self):
         n = self.game.size
@@ -74,9 +80,9 @@ class GameUI:
                                 text = str(number)
                             else:
                                 text = ""
-                            label = tk.Label(cell_inner_frame, text=text, bg=color, fg=text_color, font=(fontname,9))
+                            label = tk.Label(cell_inner_frame, text=text, bg=color, fg=text_color, font=(fontname, 9))
                             label.grid(column=guess_x, row=guess_y)
                 else:
                     label = tk.Label(cell_inner_frame, text=text, bg=color, fg=text_color,
-                                     font=(fontname,fontsize))
+                                     font=(fontname, fontsize))
                     label.grid(column=0, row=0)
