@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog, CENTER, BOTH, Grid, font
-from utils import Game
+from game import Game
 
 
 class GameUI:

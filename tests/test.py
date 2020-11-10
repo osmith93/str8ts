@@ -1,6 +1,6 @@
 import pytest
 import main
-from utils import Game, Segment, vertical, horizontal
+from game import Game, Segment, vertical, horizontal
 from solver import Solver
 
 

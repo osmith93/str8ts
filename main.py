@@ -1,5 +1,5 @@
 import ui
-from utils import Game
+from game import Game
 from solver import Solver
 
 if __name__ == '__main__':

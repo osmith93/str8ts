@@ -1,4 +1,4 @@
-from utils import Game
+from game import Game
 
 
 class Segment:
@@ -162,6 +162,6 @@ class Solver:
             else:
                 blocks.append(block)
                 block = []
-        if block != []:
+        if block:
             blocks.append(block)
         return blocks
