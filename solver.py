@@ -1,4 +1,5 @@
 from game import Game
+from segment import Segment
 from utils import Utils
 
 
@@ -10,7 +11,7 @@ class Solver:
         for cell in cells:
             if not game.is_empty(cell):
                 self.new_cells.add(cell)
-        self.segments = Utils.generate_segments(game)
+        self.segments = self.generate_segments()
 
     def get_horizontal_segments_containing(self, cell):
         pass
@@ -26,8 +27,6 @@ class Solver:
         self.decrease_ranges_of_segments_by_guesses()
         self.dead_ends()
         self.enforce_bounds_on_segments()
-
-
 
     def find_solo_guesses(self):
         cells = [(x, y) for x in range(self.game.size) for y in range(self.game.size)]
@@ -101,6 +100,31 @@ class Solver:
                 for number in removable_guesses:
                     self.game.remove_guess(number, cell)
 
+    def generate_segments(self):
+        segments = []
+        size = self.game.size
 
+        for x in range(size):
+            cells_in_current_segment = set()
+            for y in range(size):
+                if self.game.is_blocked((x, y)):
+                    if len(cells_in_current_segment) > 0:
+                        segments.append(Segment(cells_in_current_segment, Segment.vertical, size))
+                        cells_in_current_segment = set()
+                else:
+                    cells_in_current_segment.add((x, y))
+            if len(cells_in_current_segment) > 0:
+                segments.append(Segment(cells_in_current_segment, Segment.vertical, size))
 
-
+        for y in range(size):
+            cells_in_current_segment = set()
+            for x in range(size):
+                if self.game.is_blocked((x, y)):
+                    if len(cells_in_current_segment) > 0:
+                        segments.append(Segment(cells_in_current_segment, Segment.horizontal, size))
+                        cells_in_current_segment = set()
+                else:
+                    cells_in_current_segment.add((x, y))
+                if len(cells_in_current_segment) > 0:
+                    segments.append(Segment(cells_in_current_segment, Segment.horizontal, size))
+        return segments

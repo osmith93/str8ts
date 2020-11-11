@@ -1,9 +1,9 @@
 from segment import Segment
+from utils import Utils
 
 
 class Box:
     EMPTY = 0
-
     def __init__(self, pos: tuple, blocked: bool, size: int, value: int):
         self.pos = pos
         self.is_blocked = blocked
@@ -39,7 +39,11 @@ class Box:
 
 class Line:
     def __init__(self, list_of_boxes):
+        self.line = list_of_boxes
         pass
+
+    def __len__(self):
+        return len(self.line)
 
     def get_segments(self) -> list:
         pass
@@ -59,7 +63,31 @@ class Board:
         return self.grid[cell]
 
     def load(self, filename: str):
-        pass
+        """Loads a game state from file."""
+        number_board = {}
+        blocked_board = {}
+        with open(filename) as f:
+            for y in range(self.size):
+                line = next(f).strip()
+                row = Utils.decode_blocked_board_line(line)
+                if len(line) != self.size:
+                    raise Exception(f"Corrupted text file. Length of line is {len(line)} and should be {self.size}.")
+                row = {(x, y): row[x] for x in range(self.size)}
+                blocked_board.update(row)
+            empty_line = next(f).strip()
+            if empty_line != "":
+                raise Exception(f'Corrupted text file. Expected empty line, but got "{empty_line}".')
+            for y in range(self.size):
+                line = next(f).strip()
+                row = Utils.decode_number_board_line(line)
+                if len(row) != self.size:
+                    raise Exception(f"Corrupted text file. Length of line is {len(row)} and should be {self.size}.")
+                row = {(x, y): row[x] for x in range(self.size)}
+                number_board.update(row)
+
+            for cell in self.all_cells:
+                self.grid[cell].is_blocked = blocked_board[cell]
+                self.grid[cell].value = number_board[cell]
 
     def save(self, filename: str):
         pass

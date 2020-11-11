@@ -1,4 +1,6 @@
 from segment import Segment
+from game import Game
+
 class Utils:
     @staticmethod
     def get_numbers_in_small_blocks(blocks, max_size):
@@ -30,31 +32,25 @@ class Utils:
         return result
 
     @staticmethod
-    def generate_segments(game):
-        segments = []
-        size = game.size
+    def decode_number_board_line(line):
+        row = []
+        for c in line:
+            if c == ".":
+                row.append(Game.EMPTY)
+            elif c.isnumeric() and 0 < int(c):
+                row.append(int(c))
+            else:
+                raise Exception(f'Corrupted text file. Illegal character "{c}"')
+        return row
 
-        for x in range(size):
-            cells_in_current_segment = set()
-            for y in range(size):
-                if game.is_blocked((x, y)):
-                    if len(cells_in_current_segment) > 0:
-                        segments.append(Segment(cells_in_current_segment, Segment.vertical, size))
-                        cells_in_current_segment = set()
-                else:
-                    cells_in_current_segment.add((x, y))
-            if len(cells_in_current_segment) > 0:
-                segments.append(Segment(cells_in_current_segment, Segment.vertical, size))
-
-        for y in range(size):
-            cells_in_current_segment = set()
-            for x in range(size):
-                if game.is_blocked((x, y)):
-                    if len(cells_in_current_segment) > 0:
-                        segments.append(Segment(cells_in_current_segment, Segment.horizontal, size))
-                        cells_in_current_segment = set()
-                else:
-                    cells_in_current_segment.add((x, y))
-                if len(cells_in_current_segment) > 0:
-                    segments.append(Segment(cells_in_current_segment, Segment.horizontal, size))
-        return segments
+    @staticmethod
+    def decode_blocked_board_line(line):
+        row = []
+        for c in line:
+            if c == "x":
+                row.append(Game.BLOCKED)
+            elif c == ".":
+                row.append(not Game.BLOCKED)
+            else:
+                raise Exception(f'Corrupted text file. Illegal character "{c}"')
+        return row

@@ -4,9 +4,6 @@ vertical = "vertical"
 horizontal = "horizontal"
 
 
-
-
-
 class Game:
     EMPTY = 0
     BLOCKED = True
