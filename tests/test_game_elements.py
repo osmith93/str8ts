@@ -1,21 +1,21 @@
 import pytest
-from game_elements import Box, Board
+from game_elements import Cell, Board
 
 
 @pytest.fixture
 def box():
-    new_box = Box((5, 5), False, 9, Box.EMPTY)
+    new_box = Cell((5, 5), False, 9, Cell.EMPTY)
     return new_box
 
 
 class TestBox:
     @staticmethod
     def test_init():
-        box = Box((5, 5), False, 9, Box.EMPTY)
+        box = Cell((5, 5), False, 9, Cell.EMPTY)
         assert box.guesses == [1, 2, 3, 4, 5, 6, 7, 8, 9]
         assert box.is_blocked == False
         assert box.pos == (5, 5)
-        assert box.value == Box.EMPTY
+        assert box.value == Cell.EMPTY
 
     @staticmethod
     def test_remove_guess(box):
@@ -39,7 +39,7 @@ class TestBox:
     @staticmethod
     def test_try_filling_unique_guess(box):
         assert box.try_filling_unique_guess() == False
-        assert box.value == Box.EMPTY
+        assert box.value == Cell.EMPTY
         assert box.remove_guess_set({2, 3, 4, 5, 6, 7, 8, 9}) == True
         assert box.try_filling_unique_guess() == True
         assert box.value == 1
@@ -56,7 +56,7 @@ class TestBoard:
     def test_init():
         board = Board(9)
         assert board.size == 9
-        assert len(board.all_cells) == 9 * 9
+        assert len(board.all_pos) == 9 * 9
         assert len(board.grid) == 9 * 9
 
     @staticmethod
@@ -65,4 +65,4 @@ class TestBoard:
         with pytest.raises(FileNotFoundError):
             board.load("/THIS/FILE/DOES/NOT/EXIST")
         board.load("../data/board01.txt")
-        assert board.get_box((0, 0)).is_blocked == True
+        assert board.get_cell((0, 0)).is_blocked == True

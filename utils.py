@@ -1,7 +1,6 @@
-from segment import Segment
-from game import Game
-
 class Utils:
+    EMPTY = 0
+    BLOCKED = True
     @staticmethod
     def get_numbers_in_small_blocks(blocks, max_size):
         """Get a set of all numbers contained in blocks smaller than max_size."""
@@ -27,8 +26,8 @@ class Utils:
     def union_of_lists(lists):
         """Returns a union of lists."""
         result = set()
-        for list in lists:
-            result = result | set(list)
+        for lst in lists:
+            result = result | set(lst)
         return result
 
     @staticmethod
@@ -36,7 +35,7 @@ class Utils:
         row = []
         for c in line:
             if c == ".":
-                row.append(Game.EMPTY)
+                row.append(Utils.EMPTY)
             elif c.isnumeric() and 0 < int(c):
                 row.append(int(c))
             else:
@@ -48,9 +47,9 @@ class Utils:
         row = []
         for c in line:
             if c == "x":
-                row.append(Game.BLOCKED)
+                row.append(Utils.BLOCKED)
             elif c == ".":
-                row.append(not Game.BLOCKED)
+                row.append(not Utils.BLOCKED)
             else:
                 raise Exception(f'Corrupted text file. Illegal character "{c}"')
         return row

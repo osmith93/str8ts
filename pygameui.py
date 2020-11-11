@@ -1,9 +1,6 @@
 import pygame
 
 
-# from pygame.locals import *
-
-
 class UI:
     black = (0, 0, 0)
     white = (255, 255, 255)
@@ -58,21 +55,20 @@ class UI:
             pygame.draw.line(self._display_surface, UI.grid_color, (x_start, y_current), (x_end, y_current), width=3)
 
     def draw_board(self):
-        for x in range(self.game.size):
-            for y in range(self.game.size):
-                if self.game.is_blocked((x, y)):
-                    self.fill_cell((x, y))
-                    text_color = UI.white
-                else:
-                    text_color = UI.black
-                if not self.game.is_empty((x, y)):
-                    x_center, y_center = self.get_center((x, y))
-                    self.draw_text_centered_at(x_center, y_center, str(self.game.get_cell((x, y))), text_color,
-                                               font=self.font)
-                elif not self.game.is_blocked((x, y)):
-                    for guess in self.game.get_guesses((x, y)):
-                        center_x, center_y = self.get_guess_center((x, y), guess)
-                        self.draw_text_centered_at(center_x, center_y, str(guess), text_color, font=self.small_font)
+        for cell in self.game.board.all_cells:
+            pos = cell.pos
+            if cell.is_blocked:
+                self.fill_cell(pos)
+                text_color = UI.white
+            else:
+                text_color = UI.black
+            if not cell.is_empty:
+                x_center, y_center = self.get_center(pos)
+                self.draw_text_centered_at(x_center, y_center, str(cell.value), text_color, font=self.font)
+            elif not cell.is_blocked:
+                for guess in cell.guesses:
+                    center_x, center_y = self.get_guess_center(pos, guess)
+                    self.draw_text_centered_at(center_x, center_y, str(guess), text_color, font=self.small_font)
 
     def get_guess_center(self, cell, guess):
         cell_center_x, cell_center_y = self.get_center(cell)
@@ -117,10 +113,7 @@ class UI:
         pygame.quit()
 
     def on_execute(self):
-        try:
-            self.on_init()
-        except Exception:
-            self._running = False
+        self.on_init()
         while self._running:
             for event in pygame.event.get():
                 self.on_event(event)

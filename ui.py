@@ -112,7 +112,7 @@ class GameUI:
         for x in range(game.size):
             for y in range(game.size):
                 cell = (x, y)
-                self.boxes.append(BoxUI(self.frame, cell, self.game.get_cell(cell), self.game.is_empty(cell),
+                self.boxes.append(BoxUI(self.frame, cell, self.game.get_cell(cell), self.game.is_empty,
                                         self.game.is_blocked(cell), self.game.get_guesses(cell)))
 
         self.openFile = tk.Button(self.root, text="Update UI", padx=10, pady=5, fg=GameUI.text_on_primary,
@@ -133,7 +133,7 @@ class GameUI:
     def draw(self):
         for box in self.boxes:
             cell = box.cell
-            box.redraw(self.game.get_cell(cell), self.game.is_empty(cell), self.game.is_blocked(cell),
+            box.redraw(self.game.get_cell(cell), self.game.is_empty, self.game.is_blocked(cell),
                        self.game.get_guesses(cell))
 
     def draw_old(self):

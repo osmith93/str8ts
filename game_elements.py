@@ -1,8 +1,7 @@
-from segment import Segment
 from utils import Utils
+from typing import List
 
-
-class Box:
+class Cell:
     EMPTY = 0
     def __init__(self, pos: tuple, blocked: bool, size: int, value: int):
         self.pos = pos
@@ -36,6 +35,13 @@ class Box:
             return True
         return False
 
+    def __repr__(self):
+        return repr(self.pos)
+
+    @property
+    def is_empty(self):
+        return self.value == Cell.EMPTY
+
 
 class Line:
     def __init__(self, list_of_boxes):
@@ -52,15 +58,15 @@ class Line:
 class Board:
     def __init__(self, size: int):
         self.size = size
-        self.all_cells = [(x, y) for x in range(size) for y in range(size)]
-        self.grid = {cell: Box(cell, False, size, Box.EMPTY) for cell in self.all_cells}
+        self.all_pos = [(x, y) for x in range(size) for y in range(size)]
+        self.grid = {pos: Cell(pos, False, size, Cell.EMPTY) for pos in self.all_pos}
 
-    def get_box(self, cell: tuple) -> Box:
-        """Returns the box at position `cell`."""
-        x, y = cell
+    def get_cell(self, pos: tuple) -> Cell:
+        """Returns the cell at position `pos`."""
+        x, y = pos
         if x < 0 or x >= self.size or y < 0 or y >= self.size:
             raise IndexError
-        return self.grid[cell]
+        return self.grid[pos]
 
     def load(self, filename: str):
         """Loads a game state from file."""
@@ -85,9 +91,12 @@ class Board:
                 row = {(x, y): row[x] for x in range(self.size)}
                 number_board.update(row)
 
-            for cell in self.all_cells:
-                self.grid[cell].is_blocked = blocked_board[cell]
-                self.grid[cell].value = number_board[cell]
+            for pos in self.all_pos:
+                self.grid[pos].is_blocked = blocked_board[pos]
+                self.grid[pos].value = number_board[pos]
+    @property
+    def all_cells(self) -> List[Cell]:
+        return list(self.grid.values())
 
     def save(self, filename: str):
         pass
