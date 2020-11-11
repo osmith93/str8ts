@@ -1,15 +1,13 @@
-from game_elements import Cell
 from segment import Segment
 from utils import Utils
 
 
 class Solver:
-    def __init__(self, game):
-        self.game = game
-        self.board = game.board
+    def __init__(self, board):
+        self.board = board
         self.new_cell_positions = set()
-        for cell in game.board.all_pos:
-            if not game.is_empty(cell):
+        for cell in board.all_pos:
+            if not board.is_empty(cell):
                 self.new_cell_positions.add(cell)
         self.segments = self.generate_segments()
 
@@ -21,6 +19,7 @@ class Solver:
         self.decrease_ranges_of_segments_by_guesses()
         self.dead_ends()
         self.enforce_bounds_on_segments()
+        self.delete_duplicates()
 
     def find_solo_guesses(self):
         for cell in self.board.all_cells:
@@ -32,12 +31,12 @@ class Solver:
     def delete_rook_moves(self):
         for pos in self.new_cell_positions:
             x, y = pos
-            value = self.game.get_cell(pos).value
-            for i in range(self.game.size):
+            value = self.board.get_cell(pos).value
+            for i in range(self.board.size):
                 if i != y:
-                    self.game.remove_guess((x, i), value)
+                    self.board.remove_guess((x, i), value)
                 if i != x:
-                    self.game.remove_guess((i, y), value)
+                    self.board.remove_guess((i, y), value)
         self.new_cell_positions = set()
 
     def decrease_ranges_of_segments_by_values(self):
@@ -45,14 +44,13 @@ class Solver:
             if segment.max_value is not None:
                 length = len(segment)
                 segment.lower_bound = max(0, segment.max_value - length + 1)
-                segment.upper_bound = min(self.game.size, segment.min_entry + length - 1)
-        # Need to do the same for guesses
+                segment.upper_bound = min(self.board.size, segment.min_entry + length - 1)
 
     def enforce_bounds_on_segments(self):
         for segment in self.segments:
             for cell in segment:
                 cell.remove_guess_set(set(range(segment.lower_bound)))
-                cell.remove_guess_set(set(range(segment.upper_bound + 1, self.game.size + 1)))
+                cell.remove_guess_set(set(range(segment.upper_bound + 1, self.board.size + 1)))
 
     def check_solvability(self):
         pass
@@ -78,14 +76,43 @@ class Solver:
             for cell in segment:
                 cell.remove_guess_set(removable_guesses)
 
+            for block in blocks:
+                remove_block = False
+                for cell in segment:
+                    guesses = set(cell.guesses)
+                    if len(guesses.intersection(set(block))) == 0:
+                        remove_block = True
+                        break
+                if remove_block:
+                    for cell in segment:
+                        cell.remove_guess_set(set(block))
+            # maybe do something like decrease_range_by_guesses on separate blocks
+
+    def delete_duplicates(self):
+        length = 2
+        for index in range(self.board.size):
+            row = [self.board.get_cell((index, y)) for y in range(self.board.size) if
+                   self.board.is_empty((index, y)) and not self.board.is_blocked((index, y))]
+            for cell1 in row:
+                for cell2 in row:
+                    if cell1 == cell2:
+                        continue
+                    union_of_guesses = set(cell1.guesses).union(set(cell2.guesses))
+                    if len(union_of_guesses) == 2:
+                        for cell in row:
+                            if cell == cell1 or cell == cell2:
+                                continue
+                            cell.remove_guess_set(union_of_guesses)
+
+
     def generate_segments(self):
         segments = []
-        size = self.game.size
+        size = self.board.size
 
         for x in range(size):
             cells_in_current_segment = set()
             for y in range(size):
-                cell = self.game.get_cell((x,y))
+                cell = self.board.get_cell((x, y))
                 if cell.is_blocked:
                     if len(cells_in_current_segment) > 0:
                         segments.append(Segment(cells_in_current_segment, Segment.vertical, size))
@@ -98,7 +125,7 @@ class Solver:
         for y in range(size):
             cells_in_current_segment = set()
             for x in range(size):
-                cell = self.game.get_cell((x,y))
+                cell = self.board.get_cell((x, y))
                 if cell.is_blocked:
                     if len(cells_in_current_segment) > 0:
                         segments.append(Segment(cells_in_current_segment, Segment.horizontal, size))

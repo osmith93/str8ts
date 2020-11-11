@@ -1,5 +1,5 @@
 import pytest
-from game_elements import Cell, Board
+from board import Cell, Board
 
 
 @pytest.fixture

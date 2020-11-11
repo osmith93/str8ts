@@ -1,4 +1,4 @@
-from game_elements import Cell
+from board import Cell
 from typing import Set
 
 

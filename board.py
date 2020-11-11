@@ -1,8 +1,10 @@
 from utils import Utils
 from typing import List
 
+
 class Cell:
     EMPTY = 0
+
     def __init__(self, pos: tuple, blocked: bool, size: int, value: int):
         self.pos = pos
         self.is_blocked = blocked
@@ -30,6 +32,8 @@ class Cell:
 
     def try_filling_unique_guess(self) -> bool:
         """Fills the cell if only one possible value is left. Returns `True` if successful."""
+        if self.is_blocked:
+            raise Exception(f'Trying to write to blocked cell at position {self.pos}".')
         if self.unique_guess_left():
             self.value = self.guesses[0]
             return True
@@ -47,14 +51,7 @@ class Board:
     def __init__(self, size: int):
         self.size = size
         self.all_pos = [(x, y) for x in range(size) for y in range(size)]
-        self.grid = {pos: Cell(pos, False, size, Cell.EMPTY) for pos in self.all_pos}
-
-    def get_cell(self, pos: tuple) -> Cell:
-        """Returns the cell at position `pos`."""
-        x, y = pos
-        if x < 0 or x >= self.size or y < 0 or y >= self.size:
-            raise IndexError
-        return self.grid[pos]
+        self.grid = {pos: Cell(pos, blocked=False, size=size, value=Cell.EMPTY) for pos in self.all_pos}
 
     def load(self, filename: str):
         """Loads a game state from file."""
@@ -82,10 +79,59 @@ class Board:
             for pos in self.all_pos:
                 self.grid[pos].is_blocked = blocked_board[pos]
                 self.grid[pos].value = number_board[pos]
+
+    def get_cell(self, pos: tuple) -> Cell:
+        """Returns the cell at position `pos`."""
+        x, y = pos
+        if x < 0 or x >= self.size or y < 0 or y >= self.size:
+            raise IndexError
+        return self.grid[pos]
+
+    def get_guesses(self, pos: tuple) -> list:
+        """
+        Returns the guesses of a cell.
+        :param pos: tuple
+        :return: list
+        """
+        return self.get_cell(pos).guesses
+
+    def is_blocked(self, pos: tuple) -> bool:
+        """
+        Returns whether the cell is blocked.
+        :type pos: tuple
+        """
+        return self.get_cell(pos).is_blocked
+
+    def is_empty(self, pos: tuple) -> bool:
+        """
+        Checks if cell is empty.
+        :param pos: tuple
+        :return: bool
+        """
+        return self.get_cell(pos).is_empty
+
+    def set_cell_value(self, pos: tuple, value: int):
+        """
+        Sets cell to number.
+        :param pos:
+        :param value:
+        """
+        self.get_cell(pos).value = value
+
+    def remove_guess(self, pos: tuple, value: int):
+        """
+        Remove `value` from the list of guesses in `cell`.
+        :param pos:
+        :param value:
+        """
+        self.get_cell(pos).remove_guess(value)
+
+    def unique_guess_left(self, pos):
+        return self.get_cell(pos).unique_guess_left()
+
     @property
     def all_cells(self) -> List[Cell]:
         return list(self.grid.values())
 
     def save(self, filename: str):
         pass
-

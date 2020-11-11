@@ -1,3 +1,5 @@
+import itertools
+
 class Utils:
     EMPTY = 0
     BLOCKED = True
@@ -53,3 +55,7 @@ class Utils:
             else:
                 raise Exception(f'Corrupted text file. Illegal character "{c}"')
         return row
+
+    @staticmethod
+    def findsubsets(S,m):
+        return set(itertools.combinations(S,m))

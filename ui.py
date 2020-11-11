@@ -16,13 +16,22 @@ class UI:
         self.solver = solver
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font('fonts/Product Sans Regular.ttf', 40)
-        self.small_font = pygame.font.Font('fonts/Product Sans Regular.ttf', 15)
+        self.small_font = pygame.font.Font('fonts/Product Sans Regular.ttf', 18)
         self.grid_x = int(width / 10)
         self.grid_y = int(height / 10)
         self.grid_width = int(0.8 * width)
         self.grid_height = int(0.8 * height)
 
-    def draw_rect(self, x, y, width, height, color):
+    def draw_rect(self, x, y, width, height, color: tuple):
+        """
+        Draws a rectangle of color `color` to `_display_surface` to coordinates `(x,y)` with dimensions `width`x`height`.
+
+        :param x:
+        :param y:
+        :param width:
+        :param height:
+        :param color:
+        """
         pygame.draw.rect(self._display_surface, color, [x, y, width, height])
 
     def fill_cell(self, cell, color=(0, 0, 0)):
@@ -62,6 +71,8 @@ class UI:
                 text_color = UI.white
             else:
                 text_color = UI.black
+            if cell.pos == self.game.selected_cell:
+                self.fill_cell(pos,(0,153,255))
             if not cell.is_empty:
                 x_center, y_center = self.get_center(pos)
                 self.draw_text_centered_at(x_center, y_center, str(cell.value), text_color, font=self.font)
@@ -95,8 +106,12 @@ class UI:
     def on_event(self, event):
         if event.type == pygame.QUIT:
             self._running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                self.solver.next_step()
         if event.type == pygame.MOUSEBUTTONDOWN:
-            self.solver.next_step()
+            if event.button == pygame.BUTTON_RIGHT:
+                self.game.selected_cell=None
 
     def on_loop(self):
         pass
