@@ -34,7 +34,7 @@ class Segment:
             return None
 
     @property
-    def min_entry(self) -> int or None:
+    def min_value(self) -> int or None:
         """
         Minimum entry in segment. Returns `None` if no cells are filled.
         :return: int
@@ -43,6 +43,14 @@ class Segment:
             return min(self.all_values)
         except ValueError:  # this happens when no self.all_values is empty
             return None
+
+    @property
+    def min_guess(self):
+        return min([min(cell.guesses) for cell in self])
+
+    @property
+    def max_guess(self):
+        return max([max(cell.guesses) for cell in self])
 
     def __iter__(self):
         return iter(self.cells)

@@ -9,17 +9,21 @@ class Solver:
         for cell in board.all_pos:
             if not board.is_empty(cell):
                 self.new_cell_positions.add(cell)
-        self.segments = self.generate_segments()
+        self.segments, self.segment_lines = self.generate_segments()
 
     def next_step(self):
         self.check_solvability()
         self.find_solo_guesses()
         self.delete_rook_moves()
+        self.maintain_segment_bounds()
         self.decrease_ranges_of_segments_by_values()
         self.decrease_ranges_of_segments_by_guesses()
         self.dead_ends()
         self.enforce_bounds_on_segments()
-        self.delete_duplicates()
+        self.delete_pigeonhole_guesses()
+        self.find_solo_essential_guesses()
+        self.delete_essential_guesses_from_other_segments()
+        self.delete_lonely_guesses()
 
     def find_solo_guesses(self):
         for cell in self.board.all_cells:
@@ -43,8 +47,8 @@ class Solver:
         for segment in self.segments:
             if segment.max_value is not None:
                 length = len(segment)
-                segment.lower_bound = max(0, segment.max_value - length + 1)
-                segment.upper_bound = min(self.board.size, segment.min_entry + length - 1)
+                segment.lower_bound = max(segment.lower_bound, segment.max_value - length + 1)
+                segment.upper_bound = min(segment.upper_bound, segment.min_value + length - 1)
 
     def enforce_bounds_on_segments(self):
         for segment in self.segments:
@@ -59,10 +63,10 @@ class Solver:
         for segment in self.segments:
             for cell in segment:
                 guesses = cell.guesses
-                if not cell.is_empty:
-                    guesses = [cell.value]
-                segment.lower_bound = max(min(guesses) - len(segment) + 1, segment.lower_bound)
-                segment.upper_bound = min(max(guesses) + len(segment) - 1, segment.upper_bound)
+                if len(guesses) == 0:
+                    raise ValueError(f"Cell {cell} has an empty guesses list.")
+                segment.lower_bound = max(segment.lower_bound, min(guesses) - len(segment) + 1)
+                segment.upper_bound = min(segment.upper_bound, max(guesses) + len(segment) - 1)
 
     def dead_ends(self):
         """
@@ -88,50 +92,106 @@ class Solver:
                         cell.remove_guess_set(set(block))
             # maybe do something like decrease_range_by_guesses on separate blocks
 
-    def delete_duplicates(self):
-        length = 2
-        for index in range(self.board.size):
-            row = [self.board.get_cell((index, y)) for y in range(self.board.size) if
-                   self.board.is_empty((index, y)) and not self.board.is_blocked((index, y))]
-            for cell1 in row:
-                for cell2 in row:
-                    if cell1 == cell2:
-                        continue
-                    union_of_guesses = set(cell1.guesses).union(set(cell2.guesses))
-                    if len(union_of_guesses) == 2:
-                        for cell in row:
-                            if cell == cell1 or cell == cell2:
-                                continue
-                            cell.remove_guess_set(union_of_guesses)
+    def delete_pigeonhole_guesses(self):
+        for length in range(2, self.board.size):
+            for index in range(self.board.size):
+                column = [self.board.get_cell((index, y)) for y in range(self.board.size) if
+                          self.board.is_empty((index, y)) and not self.board.is_blocked((index, y))]
+                row = [self.board.get_cell((x, index)) for x in range(self.board.size) if
+                       self.board.is_empty((x, index)) and not self.board.is_blocked((x, index))]
+                for cells in [column, row]:
+                    for tuple_of_cells in Utils.findsubsets(set(cells), length):
+                        l = [cell.guesses for cell in tuple_of_cells]
+                        union_of_guesses = Utils.union_of_lists(l)
+                        if len(union_of_guesses) == length:
+                            for cell in set(cells) - set(tuple_of_cells):
+                                cell.remove_guess_set(union_of_guesses)
 
+    @staticmethod
+    def get_essential_guesses(segment):
+        lower = segment.upper_bound - len(segment) + 1
+        upper = segment.lower_bound + len(segment)
+        return [i for i in range(lower, upper)]
+
+    def find_solo_essential_guesses(self):
+        for segment in self.segments:
+            essential_guesses = self.get_essential_guesses(segment)
+            for guess in essential_guesses:
+                counter = 0
+                relevant_cell = None
+                for cell in segment:
+                    if guess in cell.guesses:
+                        counter += 1
+                        relevant_cell = cell
+                if counter == 1:
+                    relevant_cell.guesses = [guess]
+
+    def delete_essential_guesses_from_other_segments(self):
+        for line in self.segment_lines:
+            for i, segment in enumerate(line):
+                essential_guesses = self.get_essential_guesses(segment)
+                for j, other_segment in enumerate(line):
+                    if i != j:
+                        for cell in other_segment:
+                            cell.remove_guess_set(set(essential_guesses))
+
+    def delete_lonely_guesses(self):
+        for segment in self.segments:
+            if len(segment) > 1:
+                for i, cell in enumerate(segment):
+                    union_of_guesses = set()
+                    for j, other_cell in enumerate(segment):
+                        if i != j:
+                            union_of_guesses = union_of_guesses.union(set(other_cell.guesses))
+                    for guess in cell.guesses:
+                        if guess + 1 not in union_of_guesses and guess - 1 not in union_of_guesses:
+                            cell.remove_guess(guess)
 
     def generate_segments(self):
         segments = []
+        segment_lines = []
         size = self.board.size
 
         for x in range(size):
             cells_in_current_segment = set()
+            line = []
             for y in range(size):
                 cell = self.board.get_cell((x, y))
                 if cell.is_blocked:
                     if len(cells_in_current_segment) > 0:
-                        segments.append(Segment(cells_in_current_segment, Segment.vertical, size))
+                        segment = Segment(cells_in_current_segment, Segment.vertical, size)
+                        segments.append(segment)
+                        line.append(segment)
                         cells_in_current_segment = set()
                 else:
                     cells_in_current_segment.add(cell)
             if len(cells_in_current_segment) > 0:
-                segments.append(Segment(cells_in_current_segment, Segment.vertical, size))
+                segment = Segment(cells_in_current_segment, Segment.vertical, size)
+                segments.append(segment)
+                line.append(segment)
+            segment_lines.append(line)
 
         for y in range(size):
             cells_in_current_segment = set()
+            line = []
             for x in range(size):
                 cell = self.board.get_cell((x, y))
                 if cell.is_blocked:
                     if len(cells_in_current_segment) > 0:
-                        segments.append(Segment(cells_in_current_segment, Segment.horizontal, size))
+                        segment = Segment(cells_in_current_segment, Segment.horizontal, size)
+                        segments.append(segment)
+                        line.append(segment)
                         cells_in_current_segment = set()
                 else:
                     cells_in_current_segment.add(cell)
-                if len(cells_in_current_segment) > 0:
-                    segments.append(Segment(cells_in_current_segment, Segment.horizontal, size))
-        return segments
+            if len(cells_in_current_segment) > 0:
+                segment = Segment(cells_in_current_segment, Segment.horizontal, size)
+                segments.append(segment)
+                line.append(segment)
+            segment_lines.append(line)
+        return segments, segment_lines
+
+    def maintain_segment_bounds(self):
+        for segment in self.segments:
+            segment.lower_bound = max(segment.lower_bound, segment.min_guess)
+            segment.upper_bound = min(segment.upper_bound, segment.max_guess)

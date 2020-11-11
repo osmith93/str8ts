@@ -4,7 +4,7 @@ from solver import Solver
 
 if __name__ == '__main__':
     game = Game()
-    game.load("./data/board01.txt")
+    game.load("./data/board06_extreme.txt")
     solver = Solver(game.board)
     app = ui.UI(game, solver)
     app.on_execute()
