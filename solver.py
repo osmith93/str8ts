@@ -1,21 +1,5 @@
 from game import Game
-
-
-class Segment:
-    horizontal = "horizontal"
-    vertical = "vertical"
-
-    def __init__(self, cells, direction, maximum=9):
-        self.min = 1
-        self.max = maximum
-        self.cells = cells
-        self.direction = direction
-
-    def __len__(self):
-        return len(self.cells)
-
-    def __repr__(self):
-        return f"Segment({self.cells},{self.direction},{self.max})"
+from utils import Utils
 
 
 class Solver:
@@ -26,7 +10,7 @@ class Solver:
         for cell in cells:
             if not game.is_empty(cell):
                 self.new_cells.add(cell)
-        self.segments = self.get_segments(game)
+        self.segments = Utils.generate_segments(game)
 
     def get_horizontal_segments_containing(self, cell):
         pass
@@ -43,42 +27,15 @@ class Solver:
         self.dead_ends()
         self.enforce_bounds_on_segments()
 
-    @staticmethod
-    def get_segments(game):
-        segments = []
-        for x in range(game.size):
-            cells = set()
-            for y in range(game.size):
-                if game.is_blocked((x, y)):
-                    if len(cells) > 0:
-                        segments.append(Segment(cells, Segment.vertical, game.size))
-                        cells = set()
-                else:
-                    cells.add((x, y))
-            if len(cells) > 0:
-                segments.append(Segment(cells, Segment.vertical, game.size))
 
-        for y in range(game.size):
-            cells = set()
-            for x in range(game.size):
-                if game.is_blocked((x, y)):
-                    if len(cells) > 0:
-                        segments.append(Segment(cells, Segment.horizontal, game.size))
-                        cells = set()
-                else:
-                    cells.add((x, y))
-                if len(cells) > 0:
-                    segments.append(Segment(cells, Segment.horizontal, game.size))
-        return segments
 
     def find_solo_guesses(self):
         cells = [(x, y) for x in range(self.game.size) for y in range(self.game.size)]
         for cell in cells:
             if self.game.is_blocked(cell) or not self.game.is_empty(cell):
                 continue
-            numbers = self.game.get_guesses(cell)
-            if len(numbers) == 1:
-                self.game.set_to_number(cell, numbers[0])
+            if self.game.single_possibility(cell):
+                self.game.set_to_number(cell, self.game.get_guesses(cell)[0])
                 self.new_cells.add(cell)
 
     def delete_rook_moves(self):
@@ -132,36 +89,18 @@ class Solver:
                 segment.max = min(max(guesses) + len(segment) - 1, segment.max)
 
     def dead_ends(self):
+        """Parse guesses of segments into blocks and make sure that consecutive runs which are too short are excluded"""
         for segment in self.segments:
-            guess_union = set()
 
-            for cell in segment.cells:
-                guess_union = guess_union.union(self.game.get_guesses(cell))
+            guess_union = [self.game.get_guesses(cell) for cell in segment.cells]
+            guess_union = Utils.union_of_lists(guess_union)
+            blocks = Utils.get_blocks(guess_union)
+            removable_guesses = Utils.get_numbers_in_small_blocks(blocks, max_size=len(segment))
 
-            blocks = self.get_blocks(guess_union, self.game.size)
-            removable_guesses = self.get_blocks_smaller_than(blocks, len(segment))
             for cell in segment.cells:
                 for number in removable_guesses:
                     self.game.remove_guess(number, cell)
 
-    @staticmethod
-    def get_blocks_smaller_than(blocks, length):
-        small_blocks = [block for block in blocks if len(block) < length]
-        result = set()
-        for block in small_blocks:
-            result = result.union(set(block))
-        return result
 
-    @staticmethod
-    def get_blocks(guess_union, size):
-        blocks = []
-        block = []
-        for number in range(1, size + 1):
-            if number in guess_union:
-                block.append(number)
-            else:
-                blocks.append(block)
-                block = []
-        if block:
-            blocks.append(block)
-        return blocks
+
+

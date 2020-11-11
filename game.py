@@ -4,20 +4,7 @@ vertical = "vertical"
 horizontal = "horizontal"
 
 
-class Cell:
-    def __init__(self, pos, blocked, size, number=None):
-        self.pos = pos
-        self.is_blocked = blocked
-        self.number = number
-        self.guesses = [i for i in range(1, size + 1)]
 
-    def block(self):
-        self.blocked = True
-
-
-class Board:
-    def __init__(self, size):
-        pass
 
 
 class Game:
@@ -109,6 +96,9 @@ class Game:
         if number in self.guesses[cell]:
             self.guesses[cell].remove(number)
 
+    def single_possibility(self, cell):
+        return len(self.guesses[cell]) == 1
+
 
 class Segment:
     def __init__(self, x=0, y=0, length=1, dir=vertical):
@@ -129,7 +119,7 @@ class Segment:
         return cells
 
     def intersection(self, segment):
-        return self.cells.intersection(segment.cells)
+        return self.cells.intersection(segment.all_cells)
 
     def __len__(self):
         return self.length

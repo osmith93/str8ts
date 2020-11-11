@@ -3,6 +3,87 @@ from tkinter import filedialog, CENTER, BOTH, Grid, font
 from game import Game
 
 
+class BoxUI:
+    fontname = "Times"
+    smallsize = 9
+    largesize = 28
+
+    def __init__(self, parent, cell: tuple, value, empty, blocked, guesses):
+        print(".", end="")
+        self.cell = cell
+        x, y = cell
+        self.parent = parent
+        self.value = value
+        self.blocked = blocked
+        self.empty = empty
+        self.guesses = guesses
+
+        if self.blocked:
+            self.fontcolor = "white"
+            self.color = "black"
+        else:
+            self.fontcolor = "black"
+            self.color = "white"
+
+        self.cell_frame = tk.Frame(parent, bg="black")
+        self.cell_frame.grid(row=y, column=x, sticky="nsew")
+
+        self.cell_inner_frame = tk.Frame(self.cell_frame, bg=self.color)
+        self.cell_inner_frame.place(relwidth=0.96, relheight=0.96, relx=0.02, rely=0.02)
+
+        self.draw()
+
+    def redraw(self, value, empty, blocked, guesses):
+        something_changed = False
+        if self.value != value:
+            something_changed = True
+        if self.empty != empty:
+            something_changed = True
+        if self.blocked != blocked:
+            something_changed = True
+        if len(self.guesses) != len(guesses):
+            something_changed = True
+        something_changed = True
+        self.value = value
+        self.blocked = blocked
+        self.empty = empty
+        self.guesses = guesses
+
+        if something_changed:
+            self.draw()
+
+    def draw(self):
+        for widget in self.cell_inner_frame.winfo_children():
+            widget.destroy()
+
+        if self.blocked or not self.empty:
+            for guess_x in range(3):
+                self.cell_inner_frame.columnconfigure(guess_x, weight=0)
+                self.cell_inner_frame.rowconfigure(guess_x, weight=0)
+            self.cell_inner_frame.columnconfigure(0, weight=1)
+            self.cell_inner_frame.rowconfigure(0, weight=1)
+            if self.empty:
+                text = ""
+            else:
+                text = str(self.value)
+            label = tk.Label(self.cell_inner_frame, text=text, bg=self.color, fg=self.fontcolor,
+                             font=(self.fontname, self.largesize))
+            label.grid(column=0, row=0)
+        else:
+            for guess_x in range(3):
+                self.cell_inner_frame.columnconfigure(guess_x, weight=1)
+                self.cell_inner_frame.rowconfigure(guess_x, weight=1)
+                for guess_y in range(3):
+                    number = 1 + guess_x + 3 * guess_y
+                    if number in self.guesses:
+                        text = str(number)
+                    else:
+                        text = ""
+                    label = tk.Label(self.cell_inner_frame, text=text, bg=self.color, fg=self.fontcolor,
+                                     font=(BoxUI.fontname, BoxUI.smallsize))
+                    label.grid(column=guess_x, row=guess_y)
+
+
 class GameUI:
     primary = "#283593"
     primary_dark = "#001064"
@@ -27,6 +108,13 @@ class GameUI:
             Grid.columnconfigure(self.frame, x, weight=1)
             Grid.rowconfigure(self.frame, x, weight=1)
 
+        self.boxes = []
+        for x in range(game.size):
+            for y in range(game.size):
+                cell = (x, y)
+                self.boxes.append(BoxUI(self.frame, cell, self.game.get_cell(cell), self.game.is_empty(cell),
+                                        self.game.is_blocked(cell), self.game.get_guesses(cell)))
+
         self.openFile = tk.Button(self.root, text="Update UI", padx=10, pady=5, fg=GameUI.text_on_primary,
                                   bg=GameUI.primary, activebackground=GameUI.primary_light,
                                   command=self.draw)
@@ -43,6 +131,12 @@ class GameUI:
         self.draw()
 
     def draw(self):
+        for box in self.boxes:
+            cell = box.cell
+            box.redraw(self.game.get_cell(cell), self.game.is_empty(cell), self.game.is_blocked(cell),
+                       self.game.get_guesses(cell))
+
+    def draw_old(self):
         n = self.game.size
         for x in range(n):
             for y in range(n):
