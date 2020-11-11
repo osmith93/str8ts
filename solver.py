@@ -13,12 +13,6 @@ class Solver:
                 self.new_cell_positions.add(cell)
         self.segments = self.generate_segments()
 
-    def get_horizontal_segments_containing(self, cell):
-        pass
-
-    def get_vertical_segments_containing(self, cell):
-        pass
-
     def next_step(self):
         self.check_solvability()
         self.find_solo_guesses()
@@ -48,17 +42,17 @@ class Solver:
 
     def decrease_ranges_of_segments_by_values(self):
         for segment in self.segments:
-            if segment.max_entry is not None:
+            if segment.max_value is not None:
                 length = len(segment)
-                segment.min = max(0, segment.max_entry - length + 1)
-                segment.max = min(self.game.size, segment.min_entry + length - 1)
+                segment.lower_bound = max(0, segment.max_value - length + 1)
+                segment.upper_bound = min(self.game.size, segment.min_entry + length - 1)
         # Need to do the same for guesses
 
     def enforce_bounds_on_segments(self):
         for segment in self.segments:
             for cell in segment:
-                cell.remove_guess_set(set(range(segment.min)))
-                cell.remove_guess_set(set(range(segment.max + 1, self.game.size + 1)))
+                cell.remove_guess_set(set(range(segment.lower_bound)))
+                cell.remove_guess_set(set(range(segment.upper_bound + 1, self.game.size + 1)))
 
     def check_solvability(self):
         pass
@@ -69,8 +63,8 @@ class Solver:
                 guesses = cell.guesses
                 if not cell.is_empty:
                     guesses = [cell.value]
-                segment.min = max(min(guesses) - len(segment) + 1, segment.min)
-                segment.max = min(max(guesses) + len(segment) - 1, segment.max)
+                segment.lower_bound = max(min(guesses) - len(segment) + 1, segment.lower_bound)
+                segment.upper_bound = min(max(guesses) + len(segment) - 1, segment.upper_bound)
 
     def dead_ends(self):
         """

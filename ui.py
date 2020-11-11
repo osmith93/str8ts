@@ -1,182 +1,122 @@
-import tkinter as tk
-from tkinter import filedialog, CENTER, BOTH, Grid, font
-from game import Game
+import pygame
 
 
-class BoxUI:
-    fontname = "Times"
-    smallsize = 9
-    largesize = 28
+class UI:
+    black = (0, 0, 0)
+    white = (255, 255, 255)
+    grid_color = (0, 0, 0)
+    background_color = white
 
-    def __init__(self, parent, cell: tuple, value, empty, blocked, guesses):
-        print(".", end="")
-        self.cell = cell
-        x, y = cell
-        self.parent = parent
-        self.value = value
-        self.blocked = blocked
-        self.empty = empty
-        self.guesses = guesses
-
-        if self.blocked:
-            self.fontcolor = "white"
-            self.color = "black"
-        else:
-            self.fontcolor = "black"
-            self.color = "white"
-
-        self.cell_frame = tk.Frame(parent, bg="black")
-        self.cell_frame.grid(row=y, column=x, sticky="nsew")
-
-        self.cell_inner_frame = tk.Frame(self.cell_frame, bg=self.color)
-        self.cell_inner_frame.place(relwidth=0.96, relheight=0.96, relx=0.02, rely=0.02)
-
-        self.draw()
-
-    def redraw(self, value, empty, blocked, guesses):
-        something_changed = False
-        if self.value != value:
-            something_changed = True
-        if self.empty != empty:
-            something_changed = True
-        if self.blocked != blocked:
-            something_changed = True
-        if len(self.guesses) != len(guesses):
-            something_changed = True
-        something_changed = True
-        self.value = value
-        self.blocked = blocked
-        self.empty = empty
-        self.guesses = guesses
-
-        if something_changed:
-            self.draw()
-
-    def draw(self):
-        for widget in self.cell_inner_frame.winfo_children():
-            widget.destroy()
-
-        if self.blocked or not self.empty:
-            for guess_x in range(3):
-                self.cell_inner_frame.columnconfigure(guess_x, weight=0)
-                self.cell_inner_frame.rowconfigure(guess_x, weight=0)
-            self.cell_inner_frame.columnconfigure(0, weight=1)
-            self.cell_inner_frame.rowconfigure(0, weight=1)
-            if self.empty:
-                text = ""
-            else:
-                text = str(self.value)
-            label = tk.Label(self.cell_inner_frame, text=text, bg=self.color, fg=self.fontcolor,
-                             font=(self.fontname, self.largesize))
-            label.grid(column=0, row=0)
-        else:
-            for guess_x in range(3):
-                self.cell_inner_frame.columnconfigure(guess_x, weight=1)
-                self.cell_inner_frame.rowconfigure(guess_x, weight=1)
-                for guess_y in range(3):
-                    number = 1 + guess_x + 3 * guess_y
-                    if number in self.guesses:
-                        text = str(number)
-                    else:
-                        text = ""
-                    label = tk.Label(self.cell_inner_frame, text=text, bg=self.color, fg=self.fontcolor,
-                                     font=(BoxUI.fontname, BoxUI.smallsize))
-                    label.grid(column=guess_x, row=guess_y)
-
-
-class GameUI:
-    primary = "#283593"
-    primary_dark = "#001064"
-    primary_light = "#5f5fc4"
-    text_on_primary = "white"
-
-    secondary = "#8e24aa"
-    secondary_dark = "#5c007a"
-    secondary_light = "#c158dc"
-    text_on_secondary = "black"
-
-    def __init__(self, game, solver):
-        self.solver = solver
+    def __init__(self, game, solver, width=900, height=900):
+        pygame.init()
+        self._running = True
+        self._display_surface = None
+        self.size = self.width, self.height = width, height
         self.game = game
-        self.root = tk.Tk()
-        self.canvas = tk.Canvas(self.root, height=700, width=700, bg=GameUI.primary)
-        self.canvas.grid(row=0, column=0, columnspan=2)
+        self.solver = solver
+        self.clock = pygame.time.Clock()
+        self.font = pygame.font.Font('fonts/Product Sans Regular.ttf', 40)
+        self.small_font = pygame.font.Font('fonts/Product Sans Regular.ttf', 15)
+        self.grid_x = int(width / 10)
+        self.grid_y = int(height / 10)
+        self.grid_width = int(0.8 * width)
+        self.grid_height = int(0.8 * height)
 
-        self.frame = tk.Frame(self.canvas, bg="white")
-        self.frame.place(relwidth=0.8, relheight=0.8, relx=0.1, rely=0.1)
-        for x in range(game.size):
-            Grid.columnconfigure(self.frame, x, weight=1)
-            Grid.rowconfigure(self.frame, x, weight=1)
+    def draw_rect(self, x, y, width, height, color):
+        pygame.draw.rect(self._display_surface, color, [x, y, width, height])
 
-        self.boxes = []
-        for x in range(game.size):
-            for y in range(game.size):
-                cell = (x, y)
-                self.boxes.append(BoxUI(self.frame, cell, self.game.get_cell(cell), self.game.is_empty,
-                                        self.game.is_blocked(cell), self.game.get_guesses(cell)))
+    def fill_cell(self, cell, color=(0, 0, 0)):
+        x_center, y_center = self.get_center(cell)
+        width = self.grid_width // self.game.size
+        height = self.grid_height // self.game.size
+        x = x_center - height / 2
+        y = y_center - width / 2
+        self.draw_rect(x, y, width, height, color)
 
-        self.openFile = tk.Button(self.root, text="Update UI", padx=10, pady=5, fg=GameUI.text_on_primary,
-                                  bg=GameUI.primary, activebackground=GameUI.primary_light,
-                                  command=self.draw)
-        self.openFile.grid(row=1, column=0)
-        self.saveFile = tk.Button(self.root, text="Next Move", padx=10, pady=5, fg=GameUI.text_on_primary,
-                                  bg=GameUI.primary, activebackground=GameUI.primary_light,
-                                  command=self.next_step)
-        self.saveFile.grid(row=1, column=1)
+    def draw_text_centered_at(self, x, y, text, color, font):
+        text_surface = font.render(text, True, color)
+        text_rect = text_surface.get_rect()
+        text_rect.center = (x, y)
+        self._display_surface.blit(text_surface, text_rect)
 
-        self.root.mainloop()
+    def draw_grid(self):
+        y_start = self.grid_y
+        y_end = self.grid_y + self.grid_width
+        x_start = self.grid_x
+        x_end = self.grid_x + self.grid_height
+        h = self.grid_height
+        w = self.grid_width
 
-    def next_step(self):
-        self.solver.next_step()
-        self.draw()
+        for i in range(self.game.size + 1):
+            x_current = x_start + i * h / self.game.size
+            pygame.draw.line(self._display_surface, UI.grid_color, (x_current, y_start), (x_current, y_end), width=3)
+        for i in range(self.game.size + 1):
+            y_current = y_start + i * w / self.game.size
+            pygame.draw.line(self._display_surface, UI.grid_color, (x_start, y_current), (x_end, y_current), width=3)
 
-    def draw(self):
-        for box in self.boxes:
-            cell = box.cell
-            box.redraw(self.game.get_cell(cell), self.game.is_empty, self.game.is_blocked(cell),
-                       self.game.get_guesses(cell))
+    def draw_board(self):
+        for cell in self.game.board.all_cells:
+            pos = cell.pos
+            if cell.is_blocked:
+                self.fill_cell(pos)
+                text_color = UI.white
+            else:
+                text_color = UI.black
+            if not cell.is_empty:
+                x_center, y_center = self.get_center(pos)
+                self.draw_text_centered_at(x_center, y_center, str(cell.value), text_color, font=self.font)
+            elif not cell.is_blocked:
+                for guess in cell.guesses:
+                    center_x, center_y = self.get_guess_center(pos, guess)
+                    self.draw_text_centered_at(center_x, center_y, str(guess), text_color, font=self.small_font)
 
-    def draw_old(self):
-        n = self.game.size
-        for x in range(n):
-            for y in range(n):
-                fontname = "Times New Roman"
-                fontsize = 28
-                if self.game.is_blocked((x, y)):
-                    color = "black"
-                    text_color = "white"
-                else:
-                    color = "white"
-                    text_color = "black"
-                if self.game.get_cell((x, y)) == Game.EMPTY:
-                    text = ""
-                    if not self.game.is_blocked((x, y)):
-                        text = ",".join([str(g) for g in self.game.get_guesses((x, y))])
-                        fontsize = 5
-                        text_color = "gray"
+    def get_guess_center(self, cell, guess):
+        cell_center_x, cell_center_y = self.get_center(cell)
+        col = (guess - 1) % 3 - 1
+        row = (guess - 1) // 3 - 1
+        cell_center_x = cell_center_x + col * self.grid_width / (3 * self.game.size)
+        cell_center_y = cell_center_y + row * self.grid_height / (3 * self.game.size)
+        return cell_center_x, cell_center_y
 
-                else:
-                    text = str(self.game.get_cell((x, y)))
+    def get_center(self, cell):
+        x, y = cell
+        cell_width = self.grid_width / self.game.size
+        cell_height = self.grid_height / self.game.size
+        x_center = x * cell_width + cell_width / 2 + self.grid_x
+        y_center = y * cell_height + cell_height / 2 + self.grid_y
+        return x_center, y_center
 
-                cell_frame = tk.Frame(self.frame, bg="black")
-                cell_frame.grid(row=y, column=x, sticky="nsew")
-                cell_inner_frame = tk.Frame(cell_frame, bg=color)
-                cell_inner_frame.place(relwidth=0.96, relheight=0.96, relx=0.02, rely=0.02)
-                cell_inner_frame.columnconfigure(0, weight=1)
-                cell_inner_frame.rowconfigure(0, weight=1)
-                if self.game.get_cell((x, y)) == Game.EMPTY and not self.game.is_blocked((x, y)):
-                    for guess_x in range(3):
-                        cell_inner_frame.columnconfigure(guess_x, weight=1)
-                        cell_inner_frame.rowconfigure(guess_x, weight=1)
-                        for guess_y in range(3):
-                            number = 1 + guess_x + 3 * guess_y
-                            if number in self.game.get_guesses((x, y)):
-                                text = str(number)
-                            else:
-                                text = ""
-                            label = tk.Label(cell_inner_frame, text=text, bg=color, fg=text_color, font=(fontname, 9))
-                            label.grid(column=guess_x, row=guess_y)
-                else:
-                    label = tk.Label(cell_inner_frame, text=text, bg=color, fg=text_color,
-                                     font=(fontname, fontsize))
-                    label.grid(column=0, row=0)
+    def on_init(self):
+        self._display_surface = pygame.display.set_mode(self.size, pygame.HWSURFACE | pygame.DOUBLEBUF)
+        pygame.display.set_caption("Str8ts Solver")
+        self._display_surface.fill(UI.white)
+        self._running = True
+
+    def on_event(self, event):
+        if event.type == pygame.QUIT:
+            self._running = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            self.solver.next_step()
+
+    def on_loop(self):
+        pass
+
+    def on_render(self):
+        self._display_surface.fill(UI.background_color)
+        self.draw_grid()
+        self.draw_board()
+        pygame.display.update()
+        self.clock.tick(10)
+        pass
+
+    def on_cleanup(self):
+        pygame.quit()
+
+    def on_execute(self):
+        self.on_init()
+        while self._running:
+            for event in pygame.event.get():
+                self.on_event(event)
+            self.on_loop()
+            self.on_render()
+        self.on_cleanup()

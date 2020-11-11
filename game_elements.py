@@ -9,14 +9,14 @@ class Cell:
         self.value = value
         self.guesses = [i for i in range(1, size + 1)]
 
-    def remove_guess(self, value: int):
+    def remove_guess(self, value: int) -> bool:
         """Tries removing value from the `self.guesses`. Returns `True` if successful."""
         if value in self.guesses:
             self.guesses.remove(value)
             return True
         return False
 
-    def remove_guess_set(self, value_set: set):
+    def remove_guess_set(self, value_set: set) -> bool:
         """Tries removing all values in `value_set` from self.guesses. Returns `True` if any were removed."""
         result = False
         for value in value_set:
@@ -24,11 +24,11 @@ class Cell:
             result = result or success
         return result
 
-    def unique_guess_left(self):
+    def unique_guess_left(self) -> bool:
         """Returns whether there is only one possible guess left."""
         return len(self.guesses) == 1
 
-    def try_filling_unique_guess(self):
+    def try_filling_unique_guess(self) -> bool:
         """Fills the cell if only one possible value is left. Returns `True` if successful."""
         if self.unique_guess_left():
             self.value = self.guesses[0]
@@ -39,20 +39,8 @@ class Cell:
         return repr(self.pos)
 
     @property
-    def is_empty(self):
+    def is_empty(self) -> bool:
         return self.value == Cell.EMPTY
-
-
-class Line:
-    def __init__(self, list_of_boxes):
-        self.line = list_of_boxes
-        pass
-
-    def __len__(self):
-        return len(self.line)
-
-    def get_segments(self) -> list:
-        pass
 
 
 class Board:
@@ -101,5 +89,3 @@ class Board:
     def save(self, filename: str):
         pass
 
-    def get_row(self, row_id: int) -> Line:
-        pass

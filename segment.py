@@ -7,8 +7,8 @@ class Segment:
     vertical = "vertical"
 
     def __init__(self, cells: Set[Cell], direction: str, maximum=9):
-        self.min = 1
-        self.max = maximum
+        self.lower_bound = 1
+        self.upper_bound = maximum
         self.cells = cells
         self.direction = direction
 
@@ -16,35 +16,33 @@ class Segment:
         return len(self.cells)
 
     def __repr__(self):
-        return f"Segment({self.cells},{self.direction},{self.max})"
+        return f"Segment({self.cells},{self.direction},{self.upper_bound})"
 
     @property
-    def max_entry(self) -> int or None:
+    def all_values(self):
+        return [cell.value for cell in self if not cell.is_empty]
+
+    @property
+    def max_value(self) -> int or None:
         """
-        Maximum entry in segment. Returns `None` if no cells are filled.
+        Maximum value in segment. Returns `None` if all cells are empty.
         :return: int
         """
-        maximum = 0
-        for cell in self.cells:
-            if cell.value != Cell.EMPTY:
-                maximum = max(maximum, cell.value)
-        if maximum == 0:
+        try:
+            return max(self.all_values)
+        except ValueError:  # this happens when no self.all_values is empty
             return None
-        return maximum
 
     @property
     def min_entry(self) -> int or None:
         """
-        Maximum entry in segment. Returns `None` if no cells are filled.
+        Minimum entry in segment. Returns `None` if no cells are filled.
         :return: int
         """
-        minimum = 10
-        for cell in self.cells:
-            if cell.value != Cell.EMPTY:
-                minimum = min(minimum, cell.value)
-        if minimum == 10:
+        try:
+            return min(self.all_values)
+        except ValueError:  # this happens when no self.all_values is empty
             return None
-        return minimum
 
     def __iter__(self):
         return iter(self.cells)
