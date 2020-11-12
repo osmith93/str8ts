@@ -58,23 +58,22 @@ class Board:
         number_board = {}
         blocked_board = {}
         with open(filename) as f:
-            for y in range(self.size):
-                line = next(f).strip()
-                row = Utils.decode_blocked_board_line(line)
-                if len(line) != self.size:
-                    raise Exception(f"Corrupted text file. Length of line is {len(line)} and should be {self.size}.")
-                row = {(x, y): row[x] for x in range(self.size)}
-                blocked_board.update(row)
-            empty_line = next(f).strip()
-            if empty_line != "":
-                raise Exception(f'Corrupted text file. Expected empty line, but got "{empty_line}".')
-            for y in range(self.size):
-                line = next(f).strip()
-                row = Utils.decode_number_board_line(line)
-                if len(row) != self.size:
-                    raise Exception(f"Corrupted text file. Length of line is {len(row)} and should be {self.size}.")
-                row = {(x, y): row[x] for x in range(self.size)}
-                number_board.update(row)
+            for decoder_function, board in zip([Utils.decode_blocked_board_line, Utils.decode_number_board_line],
+                                               [blocked_board, number_board]):
+                for y in range(self.size):
+                    line = next(f).strip()
+                    row = decoder_function(line)
+                    if len(line) != self.size:
+                        raise Exception(
+                            f"Corrupted text file. Length of line is {len(line)} and should be {self.size}.")
+                    row = {(x, y): row[x] for x in range(self.size)}
+                    board.update(row)
+                try: # The empty line is only after the first block
+                    empty_line = next(f).strip()
+                    if empty_line != "":
+                        raise Exception(f'Corrupted text file. Expected empty line, but got "{empty_line}".')
+                except StopIteration:
+                    pass
 
             for pos in self.all_pos:
                 self.grid[pos].is_blocked = blocked_board[pos]

@@ -1,8 +1,12 @@
 import itertools
 
+
 class Utils:
     EMPTY = 0
     BLOCKED = True
+    ROW = 0
+    COLUMN = 1
+
     @staticmethod
     def get_numbers_in_small_blocks(blocks, max_size):
         """Get a set of all numbers contained in blocks smaller than max_size."""
@@ -57,5 +61,20 @@ class Utils:
         return row
 
     @staticmethod
-    def findsubsets(S,m):
-        return set(itertools.combinations(S,m))
+    def find_subsets(superset: set, size_of_subsets: int):
+        """
+        Returns a set of all subsets of `superset` as tuples of length `size_of_subsets`
+        :param superset: 
+        :param size_of_subsets: 
+        :return: set(tuple)
+        """
+        return set(itertools.combinations(superset, size_of_subsets))
+
+    @staticmethod
+    def get_positions_in_line(num, size, line_type):
+        if line_type == Utils.ROW:
+            return [(x, num) for x in range(size)]
+        elif line_type == Utils.COLUMN:
+            return [(num, y) for y in range(size)]
+        else:
+            raise ValueError("Error: line_type must be either Utils.ROW or Utils.COLUMN")

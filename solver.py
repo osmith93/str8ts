@@ -9,7 +9,7 @@ class Solver:
         for cell in board.all_pos:
             if not board.is_empty(cell):
                 self.new_cell_positions.add(cell)
-        self.segments, self.segment_lines = self.generate_segments()
+        self.segments, self.list_of_segments_in_line = self.generate_segments()
 
     def next_step(self):
         self.check_solvability()
@@ -100,9 +100,9 @@ class Solver:
                 row = [self.board.get_cell((x, index)) for x in range(self.board.size) if
                        self.board.is_empty((x, index)) and not self.board.is_blocked((x, index))]
                 for cells in [column, row]:
-                    for tuple_of_cells in Utils.findsubsets(set(cells), length):
-                        l = [cell.guesses for cell in tuple_of_cells]
-                        union_of_guesses = Utils.union_of_lists(l)
+                    for tuple_of_cells in Utils.find_subsets(set(cells), length):
+                        union_of_guesses = [cell.guesses for cell in tuple_of_cells]
+                        union_of_guesses = Utils.union_of_lists(union_of_guesses)
                         if len(union_of_guesses) == length:
                             for cell in set(cells) - set(tuple_of_cells):
                                 cell.remove_guess_set(union_of_guesses)
@@ -127,7 +127,7 @@ class Solver:
                     relevant_cell.guesses = [guess]
 
     def delete_essential_guesses_from_other_segments(self):
-        for line in self.segment_lines:
+        for line in self.list_of_segments_in_line:
             for i, segment in enumerate(line):
                 essential_guesses = self.get_essential_guesses(segment)
                 for j, other_segment in enumerate(line):
@@ -149,47 +149,29 @@ class Solver:
 
     def generate_segments(self):
         segments = []
-        segment_lines = []
+        list_of_segments_in_line = []
         size = self.board.size
 
-        for x in range(size):
-            cells_in_current_segment = set()
-            line = []
-            for y in range(size):
-                cell = self.board.get_cell((x, y))
-                if cell.is_blocked:
-                    if len(cells_in_current_segment) > 0:
-                        segment = Segment(cells_in_current_segment, Segment.vertical, size)
-                        segments.append(segment)
-                        line.append(segment)
-                        cells_in_current_segment = set()
-                else:
-                    cells_in_current_segment.add(cell)
-            if len(cells_in_current_segment) > 0:
-                segment = Segment(cells_in_current_segment, Segment.vertical, size)
-                segments.append(segment)
-                line.append(segment)
-            segment_lines.append(line)
-
-        for y in range(size):
-            cells_in_current_segment = set()
-            line = []
-            for x in range(size):
-                cell = self.board.get_cell((x, y))
-                if cell.is_blocked:
-                    if len(cells_in_current_segment) > 0:
-                        segment = Segment(cells_in_current_segment, Segment.horizontal, size)
-                        segments.append(segment)
-                        line.append(segment)
-                        cells_in_current_segment = set()
-                else:
-                    cells_in_current_segment.add(cell)
-            if len(cells_in_current_segment) > 0:
-                segment = Segment(cells_in_current_segment, Segment.horizontal, size)
-                segments.append(segment)
-                line.append(segment)
-            segment_lines.append(line)
-        return segments, segment_lines
+        for line_type, segment_direction in [(Utils.ROW, Segment.horizontal), (Utils.COLUMN, Segment.vertical)]:
+            for index in range(size):
+                cells_in_current_segment = set()
+                segments_in_line = []
+                for pos in Utils.get_positions_in_line(index, self.board.size, line_type):
+                    cell = self.board.get_cell(pos)
+                    if cell.is_blocked:
+                        if len(cells_in_current_segment) > 0:
+                            new_segment = Segment(cells_in_current_segment, segment_direction, size)
+                            segments.append(new_segment)
+                            segments_in_line.append(new_segment)
+                            cells_in_current_segment = set()
+                    else:
+                        cells_in_current_segment.add(cell)
+                if len(cells_in_current_segment) > 0:
+                    new_segment = Segment(cells_in_current_segment, segment_direction, size)
+                    segments.append(new_segment)
+                    segments_in_line.append(new_segment)
+                list_of_segments_in_line.append(segments_in_line)
+        return segments, list_of_segments_in_line
 
     def maintain_segment_bounds(self):
         for segment in self.segments:
