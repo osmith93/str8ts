@@ -9,13 +9,13 @@ class Solver:
         for cell in board.all_pos:
             if not board.is_empty(cell):
                 self.new_cell_positions.add(cell)
-        self.segments, self.list_of_segments_in_line = self.generate_segments()
+        self.segments, self.list_of_segments_in_rows, self.list_of_segments_in_columns = self.generate_segments()
 
     def next_step(self):
         self.check_solvability()
         self.find_solo_guesses()
         self.delete_rook_moves()
-        self.maintain_segment_bounds()
+        self.maintain_segment_bounds_and_essential_guesses()
         self.decrease_ranges_of_segments_by_values()
         self.decrease_ranges_of_segments_by_guesses()
         self.dead_ends()
@@ -24,6 +24,8 @@ class Solver:
         self.find_solo_essential_guesses()
         self.delete_essential_guesses_from_other_segments()
         self.delete_lonely_guesses()
+        self.delete_guesses_from_essential_guess_cells()
+        self.setti()
 
     def find_solo_guesses(self):
         for cell in self.board.all_cells:
@@ -37,9 +39,9 @@ class Solver:
             x, y = pos
             value = self.board.get_cell(pos).value
             for i in range(self.board.size):
-                if i != y:
+                if i != y and not self.board.is_blocked((x, i)):
                     self.board.remove_guess((x, i), value)
-                if i != x:
+                if i != x and not self.board.is_blocked((i, y)):
                     self.board.remove_guess((i, y), value)
         self.new_cell_positions = set()
 
@@ -115,8 +117,7 @@ class Solver:
 
     def find_solo_essential_guesses(self):
         for segment in self.segments:
-            essential_guesses = self.get_essential_guesses(segment)
-            for guess in essential_guesses:
+            for guess in segment.essential:
                 counter = 0
                 relevant_cell = None
                 for cell in segment:
@@ -127,13 +128,12 @@ class Solver:
                     relevant_cell.guesses = [guess]
 
     def delete_essential_guesses_from_other_segments(self):
-        for line in self.list_of_segments_in_line:
+        for line in self.list_of_segments_in_rows + self.list_of_segments_in_columns:
             for i, segment in enumerate(line):
-                essential_guesses = self.get_essential_guesses(segment)
                 for j, other_segment in enumerate(line):
                     if i != j:
                         for cell in other_segment:
-                            cell.remove_guess_set(set(essential_guesses))
+                            cell.remove_guess_set(segment.essential)
 
     def delete_lonely_guesses(self):
         for segment in self.segments:
@@ -149,10 +149,13 @@ class Solver:
 
     def generate_segments(self):
         segments = []
-        list_of_segments_in_line = []
+        list_of_segments_in_rows = []
+        list_of_segments_in_columns = []
         size = self.board.size
 
-        for line_type, segment_direction in [(Utils.ROW, Segment.horizontal), (Utils.COLUMN, Segment.vertical)]:
+        for line_type, segment_direction, list_of_segments_in_line in [
+            (Utils.ROW, Segment.horizontal, list_of_segments_in_rows),
+            (Utils.COLUMN, Segment.vertical, list_of_segments_in_columns)]:
             for index in range(size):
                 cells_in_current_segment = set()
                 segments_in_line = []
@@ -171,9 +174,75 @@ class Solver:
                     segments.append(new_segment)
                     segments_in_line.append(new_segment)
                 list_of_segments_in_line.append(segments_in_line)
-        return segments, list_of_segments_in_line
+        return segments, list_of_segments_in_rows, list_of_segments_in_columns
 
-    def maintain_segment_bounds(self):
+    def maintain_segment_bounds_and_essential_guesses(self):
         for segment in self.segments:
             segment.lower_bound = max(segment.lower_bound, segment.min_guess)
             segment.upper_bound = min(segment.upper_bound, segment.max_guess)
+            lower = segment.upper_bound - len(segment) + 1
+            upper = segment.lower_bound + len(segment)
+            segment.essential = segment.essential | {i for i in range(lower, upper)}
+
+    def delete_guesses_from_essential_guess_cells(self):
+        for segment in self.segments:
+            cells_with_essential_guesses = []
+            for cell in segment:
+                if set(cell.guesses) & segment.essential:
+                    cells_with_essential_guesses.append(cell)
+            if len(cells_with_essential_guesses) == len(segment.essential):
+                for cell in cells_with_essential_guesses:
+                    cell.guesses = [guess for guess in cell.guesses if guess in segment.essential]
+
+    def setti(self):
+        essential_in_rows = []
+        impossible_in_rows = []
+        essential_in_columns = []
+        impossible_in_columns = []
+        for essential_in_lines, impossible_in_lines, line_type, list_of_segments_in_line in [
+            (essential_in_rows, impossible_in_rows, Utils.ROW, self.list_of_segments_in_rows),
+            (essential_in_columns, impossible_in_columns, Utils.COLUMN, self.list_of_segments_in_columns)]:
+            for i, segments in enumerate(list_of_segments_in_line):
+                essential_in_line = set()
+                for pos in Utils.get_positions_in_line(i, self.board.size, line_type):
+                    cell = self.board.get_cell(pos)
+                    if not cell.is_empty:
+                        essential_in_line.add(cell.value)
+                for segment in segments:
+                    essential_in_line = essential_in_line | segment.essential
+                essential_in_lines.append(essential_in_line)
+                impossible_in_line = set(range(1, self.board.size + 1))
+                for segment in segments:
+                    for cell in segment:
+                        impossible_in_line = impossible_in_line - set(cell.guesses)
+                impossible_in_line = impossible_in_line - essential_in_line
+                impossible_in_lines.append(impossible_in_line)
+
+        for value in range(1, self.board.size + 1):
+            rows_containing_value = [i for i in range(self.board.size) if value in essential_in_rows[i]]
+            columns_containing_value = [i for i in range(self.board.size) if value in essential_in_columns[i]]
+            rows_without_value = [i for i in range(self.board.size) if value in impossible_in_rows[i]]
+            columns_without_value = [i for i in range(self.board.size) if value in impossible_in_columns[i]]
+            ess_row_count = len(rows_containing_value)
+            imp_row_count = len(rows_without_value)
+            row_count = ess_row_count + imp_row_count
+            ess_col_count = len(columns_containing_value)
+            imp_col_count = len(columns_without_value)
+            column_count = ess_col_count + imp_col_count
+            if row_count == self.board.size and column_count != self.board.size:
+                if ess_col_count == ess_row_count:
+                    new_impossible_columns = set(range(self.board.size)) - set(
+                        columns_without_value + columns_containing_value)
+                    for index in new_impossible_columns:
+                        for pos in Utils.get_positions_in_line(index, self.board.size, Utils.COLUMN):
+                            if not self.board.is_blocked(pos):
+                                self.board.remove_guess(pos, value)
+
+            if row_count != self.board.size and column_count == self.board.size:
+                if ess_col_count == ess_row_count:
+                    new_impossible_rows = set(range(self.board.size)) - set(
+                        rows_without_value + rows_containing_value)
+                    for index in new_impossible_rows:
+                        for pos in Utils.get_positions_in_line(index, self.board.size, Utils.ROW):
+                            if not self.board.is_blocked(pos):
+                                self.board.remove_guess(pos, value)

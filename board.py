@@ -10,11 +10,16 @@ class Cell:
         self.is_blocked = blocked
         self.value = value
         self.guesses = [i for i in range(1, size + 1)]
+        self.reasons = {i: "" for i in self.guesses}
 
     def remove_guess(self, value: int) -> bool:
         """Tries removing value from the `self.guesses`. Returns `True` if successful."""
+        if self.is_blocked:
+            raise AttributeError(f"Trying to remove guess of blocked cell at position {self.pos}.")
         if value in self.guesses:
             self.guesses.remove(value)
+            if len(self.guesses) == 0:
+                raise Warning(f"Deleted last guess {value}  from cell at position {self}.")
             return True
         return False
 
@@ -40,7 +45,7 @@ class Cell:
         return False
 
     def __repr__(self):
-        return repr(self.pos)
+        return "Pos:  " + repr(self.pos) + " Value: " + str(self.value)
 
     @property
     def is_empty(self) -> bool:
@@ -68,7 +73,7 @@ class Board:
                             f"Corrupted text file. Length of line is {len(line)} and should be {self.size}.")
                     row = {(x, y): row[x] for x in range(self.size)}
                     board.update(row)
-                try: # The empty line is only after the first block
+                try:  # The empty line is only after the first block
                     empty_line = next(f).strip()
                     if empty_line != "":
                         raise Exception(f'Corrupted text file. Expected empty line, but got "{empty_line}".')
@@ -83,7 +88,7 @@ class Board:
         """Returns the cell at position `pos`."""
         x, y = pos
         if x < 0 or x >= self.size or y < 0 or y >= self.size:
-            raise IndexError
+            raise IndexError(f"Position ({x},{y}) is not on the board.")
         return self.grid[pos]
 
     def get_guesses(self, pos: tuple) -> list:

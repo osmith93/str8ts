@@ -11,6 +11,7 @@ class Segment:
         self.upper_bound = maximum
         self.cells = cells
         self.direction = direction
+        self.essential = set()
 
     def __len__(self):
         return len(self.cells)
