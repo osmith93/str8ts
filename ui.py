@@ -15,8 +15,12 @@ class UI:
         self.game = game
         self.solver = solver
         self.clock = pygame.time.Clock()
-        self.font = pygame.font.Font('fonts/Product Sans Regular.ttf', 40)
-        self.small_font = pygame.font.Font('fonts/Product Sans Regular.ttf', 18)
+        try:
+            self.font = pygame.font.Font('fonts/Product-Sans/Product Sans Regular.ttf', 40)
+            self.small_font = pygame.font.Font('fonts/Product-Sans/Product Sans Regular.ttf', 18)
+        except FileNotFoundError: # Fall back font, as Product Sans has no free license
+            self.font = pygame.font.Font('fonts/Roboto/Roboto-Bold.ttf', 40)
+            self.small_font = pygame.font.Font('fonts/Roboto/Roboto-Bold.ttf', 18)
         self.grid_x = int(width / 10)
         self.grid_y = int(height / 10)
         self.grid_width = int(0.8 * width)
